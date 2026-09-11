@@ -2,6 +2,7 @@ import { renderEmail, type RenderedEmail } from "@/lib/email/render";
 import { formatCOP } from "@/lib/format";
 import { formatRangeEs } from "@/lib/dates";
 import { CONTACT } from "@/lib/nav";
+import { SITE_URL as SITE } from "@/lib/site";
 
 export type Canal = "correo" | "whatsapp" | "ambos";
 
@@ -43,8 +44,6 @@ export type NotificationCtx = {
   whatsapp?: string;
   extra?: string;
 };
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /** Metadatos de las 21 notificaciones (para el panel administrativo y la documentación). */
 export const NOTIFICATIONS: {

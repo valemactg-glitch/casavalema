@@ -2,9 +2,9 @@ import "server-only";
 import { db } from "@/lib/db";
 import { buildEmail, channelFor, type NotificationEvent, type NotificationCtx } from "@/lib/email/templates";
 import { guestsLabel } from "@/lib/dates";
+import { SITE_URL as SITE } from "@/lib/site";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "reservas@valema.co";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "reservas@valema.co";
 
 type SendResult = { ok: boolean; skipped?: boolean };
 

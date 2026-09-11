@@ -8,11 +8,19 @@ import { assertCan, logActivity } from "@/lib/auth/session";
 export async function guardarConfig(formData: FormData) {
   const user = await assertCan("configuracion");
   const grupo = String(formData.get("__grupo"));
+  const NUMERIC = new Set(["capacidadTotal", "lat", "lng", "zoom", "frecuenciaSyncHoras"]);
+  const BOOLEAN = new Set(["mostrarDireccionAntesDeReservar"]);
   const patch: Record<string, unknown> = {};
   for (const [k, v] of formData.entries()) {
-    if (k.startsWith("__")) continue;
+    if (k.startsWith("__") || k.startsWith("$")) continue; // "$ACTION_ID_…" es interno de Next
     const val = String(v).trim();
-    patch[k] = k.endsWith("Pct") || k === "capacidadTotal" ? Number(val) || 0 : k === "mostrarDireccionAntesDeReservar" ? val === "on" : val;
+    if (BOOLEAN.has(k)) {
+      patch[k] = val === "on"; // el checkbox va después de un input oculto "off": gana el último valor
+    } else if (k.endsWith("Pct") || NUMERIC.has(k)) {
+      patch[k] = val === "" ? undefined : Number(val);
+    } else {
+      patch[k] = val;
+    }
   }
 
   const setting = (await db.setting.findUnique({ where: { id: 1 } })) ?? (await db.setting.create({ data: { id: 1 } }));

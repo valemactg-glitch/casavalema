@@ -5,7 +5,7 @@ import { can } from "@/lib/auth/rbac";
 import { db } from "@/lib/db";
 import { guardarConfig } from "./actions";
 
-type Campo = { name: string; label: string; type?: string; placeholder?: string };
+type Campo = { name: string; label: string; type?: string; placeholder?: string; hint?: string };
 type Grupo = { grupo: string; titulo: string; campos: Campo[] };
 
 const GRUPOS: Grupo[] = [
@@ -68,6 +68,33 @@ const GRUPOS: Grupo[] = [
       { name: "analitica", label: "ID de analítica" },
     ],
   },
+  {
+    grupo: "ubicacion",
+    titulo: "Ubicación y mapa",
+    campos: [
+      {
+        name: "lat",
+        label: "Latitud",
+        type: "number",
+        placeholder: "4.6097",
+        hint: "Abre el punto en Google Maps, clic derecho sobre el pin y copia las coordenadas.",
+      },
+      { name: "lng", label: "Longitud", type: "number", placeholder: "-74.0817" },
+      { name: "zoom", label: "Zoom del mapa (10–18)", type: "number", placeholder: "14" },
+      {
+        name: "direccionAprox",
+        label: "Sector / dirección aproximada (pública)",
+        placeholder: "Barrio La Candelaria, a 2 cuadras de la plaza",
+      },
+      {
+        name: "direccionExacta",
+        label: "Dirección exacta (solo tras confirmar reserva)",
+        type: "textarea",
+        placeholder: "Calle 10 # 5-23, apto 2",
+      },
+      { name: "comoLlegar", label: "Cómo llegar / instrucciones de acceso", type: "textarea" },
+    ],
+  },
 ];
 
 export default async function ConfiguracionPage() {
@@ -96,22 +123,38 @@ export default async function ConfiguracionPage() {
                   <label key={c.name} className="block text-[11px] font-medium text-ink-2">
                     {c.label}
                     {c.type === "checkbox" ? (
-                      <input
-                        type="checkbox"
+                      <>
+                        {/* Compañero oculto: así el desmarcado también viaja en el envío. */}
+                        <input type="hidden" name={c.name} value="off" disabled={!w} />
+                        <input
+                          type="checkbox"
+                          name={c.name}
+                          defaultChecked={!!valores[c.name]}
+                          disabled={!w}
+                          className="ml-2 accent-carbon"
+                        />
+                      </>
+                    ) : c.type === "textarea" ? (
+                      <textarea
                         name={c.name}
-                        defaultChecked={!!valores[c.name]}
+                        defaultValue={String(valores[c.name] ?? "")}
+                        placeholder={c.placeholder}
                         disabled={!w}
-                        className="ml-2 accent-carbon"
+                        rows={2}
+                        className="mt-1 block w-full rounded-sm border border-hairline px-2 py-1.5 text-[12px] disabled:bg-neutro-bg/40"
                       />
                     ) : (
                       <input
                         name={c.name}
                         type={c.type ?? "text"}
+                        step={c.type === "number" ? "any" : undefined}
                         defaultValue={String(valores[c.name] ?? "")}
+                        placeholder={c.placeholder}
                         disabled={!w}
                         className="mt-1 block h-9 w-full rounded-sm border border-hairline px-2 text-[12px] disabled:bg-neutro-bg/40"
                       />
                     )}
+                    {c.hint && <span className="mt-1 block text-[10.5px] font-normal text-ink-3">{c.hint}</span>}
                   </label>
                 ))}
                 {w && (

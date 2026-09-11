@@ -8,9 +8,9 @@ import { can } from "@/lib/auth/rbac";
 import { calendarStrip } from "@/lib/admin/metrics";
 import { db } from "@/lib/db";
 import { parseISODate, today, toISODate } from "@/lib/dates";
+import { SITE_URL as SITE } from "@/lib/site";
 
 const DIAS = 14;
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 function haceCuanto(d: Date | null): string | null {
   if (!d) return null;

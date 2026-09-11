@@ -8,6 +8,7 @@ import { formatCOP } from "@/lib/format";
 import { formatRangeEs, formatDateLongEs, nightsLabel, guestsLabel, parseISODate } from "@/lib/dates";
 import { cobroLabel } from "@/lib/booking/pricing";
 import { whatsappUrl } from "@/lib/nav";
+import { getSettings, googleMapsUrl } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Confirmación de reserva",
@@ -51,8 +52,17 @@ export default async function ConfirmacionPage(props: PageProps<"/reserva/[code]
   const l = parseISODate(new Date(booking.llegada).toISOString().slice(0, 10))!;
   const s = parseISODate(new Date(booking.salida).toISOString().slice(0, 10))!;
 
+  const settings = await getSettings();
+  const ubicacion = settings.ubicacion ?? {};
+  // La dirección exacta sólo se revela con la reserva confirmada.
+  const confirmada = booking.estado === "CONFIRMADA" || booking.estado === "EN_CURSO";
+  const mapsHref = confirmada ? googleMapsUrl(ubicacion) : null;
+
   const instrucciones = [
-    "Te enviamos la dirección exacta y cómo entrar por correo, y un recordatorio el día antes.",
+    confirmada && ubicacion.direccionExacta
+      ? `Dirección: ${ubicacion.direccionExacta}.`
+      : "Te enviamos la dirección exacta y cómo entrar por correo, y un recordatorio el día antes.",
+    ...(confirmada && ubicacion.comoLlegar ? [ubicacion.comoLlegar] : []),
     "Check-in desde las 15:00. Escríbenos tu hora de llegada para coordinar la entrega de llaves.",
     "El saldo pendiente se paga al llegar, en efectivo o por transferencia.",
     "El rooftop es de uso libre entre las 7:00 y las 22:00.",
@@ -156,8 +166,9 @@ export default async function ConfirmacionPage(props: PageProps<"/reserva/[code]
       {/* Datos de transferencia si aplica */}
       {pendienteTransferencia && (
         <Callout tone="info" className="mt-4" title="Datos para la transferencia">
-          Banco: [BANCO] · Cuenta de ahorros [NÚMERO] · Titular: Casa Turística Valema ·
-          NIT [NIT]. Envía el comprobante por WhatsApp indicando tu código {booking.codigo}.
+          {(settings.pagos?.cuentaBancaria as string) ??
+            "Los datos bancarios aún no están configurados. Escríbenos por WhatsApp y te los damos."}{" "}
+          Envía el comprobante por WhatsApp indicando tu código {booking.codigo}.
         </Callout>
       )}
 
@@ -203,6 +214,13 @@ export default async function ConfirmacionPage(props: PageProps<"/reserva/[code]
               </li>
             ))}
           </ol>
+          {mapsHref && (
+            <div className="mt-4">
+              <Button href={mapsHref} variant="outline" size="sm">
+                Abrir la dirección en Google Maps
+              </Button>
+            </div>
+          )}
           <p className="mt-4 text-[12px] text-ink-3">
             Confirmación enviada a <strong>{booking.guest.correo}</strong>. Si no la ves,
             revisa spam o escríbenos.

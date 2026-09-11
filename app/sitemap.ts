@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://valema.co";
+import { SITE_URL as SITE } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [rooms, legales] = await Promise.all([

@@ -3,8 +3,7 @@ import { db } from "@/lib/db";
 import { getGateway, type PaymentMethod, type PaymentModalidad } from "@/lib/payments/gateway";
 import { paymentReference } from "@/lib/booking/codes";
 import { notifyBooking } from "@/lib/email/send";
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { SITE_URL as SITE } from "@/lib/site";
 
 export type StartPaymentResult =
   | {

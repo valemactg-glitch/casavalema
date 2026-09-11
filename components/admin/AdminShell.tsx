@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { ADMIN_NAV } from "@/lib/admin/nav";
+import { BrandMark } from "@/components/site/BrandLogo";
 
 export function AdminShell({
   user,
@@ -32,7 +33,10 @@ export function AdminShell({
     <div className="min-h-screen bg-panel lg:grid lg:grid-cols-[212px_1fr]">
       {/* Barra superior móvil */}
       <div className="flex items-center justify-between border-b border-hairline bg-carbon px-4 py-3 text-marfil lg:hidden">
-        <span className="font-heading text-[16px]">Valema</span>
+        <Link href="/" className="flex items-center gap-2.5" title="Ir al sitio web">
+          <BrandMark size={30} />
+          <span className="font-heading text-[16px] transition-colors hover:text-oro">Valema</span>
+        </Link>
         <button
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
@@ -50,12 +54,21 @@ export function AdminShell({
           open ? "block" : "hidden lg:flex",
         )}
       >
-        <div className="hidden items-baseline gap-2 px-5 py-5 lg:flex">
-          <span className="font-heading text-[18px] text-marfil">Valema</span>
-          <span className="text-[8.5px] font-semibold uppercase tracking-[0.24em] text-oro">
-            Portal
+        <Link
+          href="/"
+          title="Ir al sitio web"
+          className="group hidden items-center gap-2.5 px-5 py-5 lg:flex"
+        >
+          <BrandMark size={36} />
+          <span className="inline-flex flex-col leading-none">
+            <span className="font-heading text-[18px] text-marfil transition-colors group-hover:text-oro">
+              Valema
+            </span>
+            <span className="mt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.24em] text-oro">
+              Portal
+            </span>
           </span>
-        </div>
+        </Link>
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Portal administrativo">
           {items.map((i) => {
             const active = isActive(i.href);

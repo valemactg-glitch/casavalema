@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Merriweather, Montserrat } from "next/font/google";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const merriweather = Merriweather({
@@ -16,8 +17,6 @@ const montserrat = Montserrat({
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://valema.co";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
