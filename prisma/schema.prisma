@@ -1,0 +1,650 @@
+// Casa Turística Valema — modelo de datos (Fase 1)
+// Reglas de negocio en design-reference/README.md §"Reglas de negocio no negociables".
+// Local: PostgreSQL embebido. Producción: Supabase (mismo provider, misma migración).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Habitaciones y tarifas
+// ─────────────────────────────────────────────────────────────
+
+model Room {
+  id               String  @id @default(cuid())
+  slug             String  @unique
+  nombre           String
+  descripcionCorta String
+  descripcionLarga String
+  capacidadAdultos Int     @default(2)
+  capacidadNinos   Int     @default(0)
+  cama             String // "Cama queen", "Dos individuales"…
+  tamanoM2         Int?
+  vista            String?
+  banoPrivado      Boolean @default(true)
+  ubicacionEnCasa  String?
+
+  precioBase  Int // COP por noche, tarifa "desde"
+  anticipoPct Int @default(30)
+  estadiaMin  Int @default(1)
+  estadiaMax  Int?
+
+  servicios String[] @default([]) // claves de amenidades incluidas
+  reglas    Json     @default("[]") // [{ clave, valor }]
+
+  orden        Int     @default(0)
+  visible      Boolean @default(true)
+  ventaCerrada Boolean @default(false)
+
+  seoTitulo      String?
+  seoDescripcion String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ratePlans    RatePlan[]
+  availability Availability[]
+  bookings     Booking[]
+  holds        BookingHold[]
+  blocks       Block[]
+  reviews      Review[]
+  images       RoomImage[]
+  icalLink     IcalLink?
+
+  @@index([visible, orden])
+}
+
+model RoomImage {
+  id      String  @id @default(cuid())
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId  String
+  url     String
+  alt     String
+  pie     String?
+  portada Boolean @default(false)
+  orden   Int     @default(0)
+
+  @@index([roomId, orden])
+}
+
+model RatePlan {
+  id                   String              @id @default(cuid())
+  room                 Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId               String
+  nombre               String // "Tarifa flexible", "No reembolsable"
+  reembolsable         Boolean             @default(true)
+  anticipoPct          Int                 @default(30)
+  politicaCancelacion  String // texto vigente mostrado al huésped
+  descuentoPct         Int                 @default(0) // no reembolsable suele ir con descuento
+  activo               Boolean             @default(true)
+  bookings             Booking[]
+
+  @@index([roomId, activo])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Disponibilidad — una fila por habitación y noche.
+// Fuente de verdad del precio y de las reglas de estadía.
+// ─────────────────────────────────────────────────────────────
+
+model Availability {
+  id             String   @id @default(cuid())
+  room           Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId         String
+  fecha          DateTime @db.Date
+  precio         Int
+  estadiaMin     Int      @default(1)
+  estadiaMax     Int?
+  cerrado        Boolean  @default(false) // inventario cerrado a la venta
+  anticipacionMin Int     @default(0) // días mínimos de anticipación
+
+  @@unique([roomId, fecha])
+  @@index([fecha])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Retención temporal — mientras vive, esas noches no se venden.
+// Un job libera las vencidas.
+// ─────────────────────────────────────────────────────────────
+
+model BookingHold {
+  id        String   @id @default(cuid())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId    String
+  llegada   DateTime @db.Date
+  salida    DateTime @db.Date
+  sessionId String
+  expiraEn  DateTime
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId String?
+  createdAt DateTime @default(now())
+
+  @@index([roomId, expiraEn])
+  @@index([expiraEn])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Huéspedes y reservas
+// ─────────────────────────────────────────────────────────────
+
+model Guest {
+  id             String   @id @default(cuid())
+  nombre         String
+  apellidos      String
+  docTipo        DocTipo  @default(CC)
+  docNumero      String
+  pais           String   @default("Colombia")
+  ciudad         String?
+  telefono       String
+  correo         String
+  consentimientos Json    @default("{}") // { politicas, datos, comunicaciones }
+  etiquetas      String[] @default([])
+  notasPrivadas  String?
+  preferencias   String?
+  solicitudEliminacion Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@index([correo])
+}
+
+model Booking {
+  id     String @id @default(cuid())
+  codigo String @unique // VAL-26-0184
+
+  room       Room      @relation(fields: [roomId], references: [id])
+  roomId     String
+  ratePlan   RatePlan? @relation(fields: [ratePlanId], references: [id])
+  ratePlanId String?
+  guest      Guest     @relation(fields: [guestId], references: [id])
+  guestId    String
+
+  llegada DateTime @db.Date
+  salida  DateTime @db.Date
+  noches  Int
+  adultos Int
+  ninos   Int      @default(0)
+
+  estado BookingEstado @default(BORRADOR)
+  canal  Canal         @default(DIRECTO)
+
+  subtotal  Int // habitación
+  serviciosTotal Int @default(0)
+  descuento Int @default(0)
+  impuestos Int @default(0)
+  total     Int
+  anticipo  Int // a pagar ahora
+  saldo     Int // se paga al llegar
+
+  codigoPromocional String?
+  horaLlegada       String?
+  solicitudes       String?
+  reservaParaOtro   Boolean @default(false)
+  facturacion       Json?
+
+  holdExpiraEn DateTime?
+  gestionToken String    @unique @default(cuid()) // acceso a "Mi reserva"
+
+  notasInternas  String?
+  estadoLimpieza String    @default("pendiente") // pendiente | en_proceso | lista
+  checkInAt      DateTime?
+  checkOutAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companions      Companion[]
+  payments        Payment[]
+  services        BookingService[]
+  holds           BookingHold[]
+  review          Review?
+  changeRequests  ChangeRequest[]
+  events          BookingEvent[]
+
+  @@index([estado])
+  @@index([roomId, llegada, salida])
+  @@index([llegada])
+}
+
+model Companion {
+  id        String  @id @default(cuid())
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
+  nombre    String
+  docNumero String?
+  esMenor   Boolean @default(false)
+  edad      Int?
+}
+
+// Historial: cambios de fecha, habitación, precio, estado y pago.
+model BookingEvent {
+  id        String   @id @default(cuid())
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
+  tipo      String // estado | fecha | habitacion | precio | pago | nota
+  detalle   String
+  valorAnterior String?
+  valorNuevo    String?
+  actor     String   @default("sistema")
+  createdAt DateTime @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+model ChangeRequest {
+  id        String              @id @default(cuid())
+  booking   Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
+  tipo      ChangeRequestTipo
+  detalle   String
+  estado    ChangeRequestEstado @default(EN_REVISION)
+  respuesta String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([estado])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Pagos — nunca se guarda PAN, CVV ni datos de tarjeta.
+// ─────────────────────────────────────────────────────────────
+
+model Payment {
+  id            String        @id @default(cuid())
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId     String
+  referencia    String        @unique
+  metodo        PaymentMetodo
+  estado        PaymentEstado @default(PENDIENTE)
+  valor         Int
+  comision      Int           @default(0)
+  moneda        String        @default("COP")
+  proveedor     String        @default("mock")
+  proveedorRef  String?
+  comprobanteUrl String?
+  detalle       Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([estado])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bloqueos — la disponibilidad de una noche es la unión de
+// Booking activos y Block.
+// ─────────────────────────────────────────────────────────────
+
+model Block {
+  id       String    @id @default(cuid())
+  room     Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId   String
+  desde    DateTime  @db.Date
+  hasta    DateTime  @db.Date
+  tipo     BlockTipo @default(MANUAL)
+  motivo   String?
+  origen   String? // "airbnb", "admin:marcela"
+  icalUid  String?   @unique
+  createdAt DateTime @default(now())
+
+  @@index([roomId, desde, hasta])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reseñas — sin bookingId no se puede publicar.
+// ─────────────────────────────────────────────────────────────
+
+model Review {
+  id        String       @id @default(cuid())
+  booking   Booking?     @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId String?      @unique
+  room      Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  roomId    String?
+  autor     String // nombre o iniciales
+  fechaEstadia DateTime? @db.Date
+
+  limpieza    Int
+  ubicacion   Int
+  atencion    Int
+  comodidad   Int
+  precio      Int
+  texto       String
+
+  estado    ReviewEstado @default(PENDIENTE)
+  respuesta String?
+  destacada Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([estado])
+  @@index([roomId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Servicios adicionales
+// ─────────────────────────────────────────────────────────────
+
+model Service {
+  id            String                @id @default(cuid())
+  slug          String                @unique
+  nombre        String
+  descripcion   String
+  imagenUrl     String?
+  precio        Int                   @default(0)
+  tipoCobro     ServiceCobro          @default(UNA_VEZ)
+  disponibilidad ServiceDisponibilidad @default(ADICIONAL)
+  cupo          Int? // null = sin límite
+  anticipacionHoras Int               @default(0)
+  impuestosIncluidos Boolean          @default(true)
+  activo        Boolean               @default(true)
+  orden         Int                   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookingServices BookingService[]
+
+  @@index([activo, orden])
+}
+
+model BookingService {
+  id           String       @id @default(cuid())
+  booking      Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId    String
+  service      Service      @relation(fields: [serviceId], references: [id])
+  serviceId    String
+  cantidad     Int          @default(1)
+  precioUnit   Int
+  tipoCobro    ServiceCobro // snapshot al momento de reservar
+  subtotal     Int
+
+  @@unique([bookingId, serviceId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Contenido editable del sitio (CMS mínimo) y contacto
+// ─────────────────────────────────────────────────────────────
+
+model SitePage {
+  id        String   @id @default(cuid())
+  clave     String   @unique // "home", "la-casa", "rooftop", "faq"…
+  titulo    String
+  contenido Json     @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
+model FaqItem {
+  id        String   @id @default(cuid())
+  categoria String
+  pregunta  String
+  respuesta String
+  orden     Int      @default(0)
+  publicada Boolean  @default(true)
+
+  @@index([categoria, orden])
+}
+
+model LegalDoc {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  titulo    String
+  cuerpo    String // markdown
+  version   String   @default("1.0")
+  updatedAt DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  nombre    String
+  correo    String
+  telefono  String?
+  motivo    String
+  mensaje   String
+  consentimiento Boolean @default(false)
+  gestionado Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([gestionado, createdAt])
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String
+  pie       String?
+  categoria String // "habitaciones" | "fachada" | "comunes" | "rooftop" | "entorno" | "experiencias"
+  orden     Int      @default(0)
+  publicada Boolean  @default(true)
+
+  @@index([categoria, orden])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
+enum DocTipo {
+  CC // cédula de ciudadanía
+  CE // cédula de extranjería
+  PP // pasaporte
+  NIT
+  TI // tarjeta de identidad
+}
+
+enum BookingEstado {
+  BORRADOR
+  PENDIENTE_PAGO
+  PAGO_PARCIAL
+  CONFIRMADA
+  EN_CURSO
+  COMPLETADA
+  CANCELADA
+  NO_SHOW
+  REEMBOLSADA
+  REEMBOLSO_PARCIAL
+}
+
+enum Canal {
+  DIRECTO
+  AIRBNB
+  WHATSAPP
+  TELEFONO
+}
+
+enum PaymentMetodo {
+  TARJETA
+  PSE
+  TRANSFERENCIA
+}
+
+enum PaymentEstado {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  CANCELADO
+  EXPIRADO
+  REEMBOLSADO
+}
+
+enum BlockTipo {
+  MANUAL
+  MANTENIMIENTO
+  CORTESIA
+  AIRBNB
+}
+
+enum ReviewEstado {
+  PENDIENTE
+  PUBLICADA
+  RECHAZADA
+  SIN_VALIDAR
+}
+
+enum ServiceCobro {
+  UNA_VEZ
+  POR_NOCHE
+  POR_HABITACION
+  POR_HUESPED
+  BAJO_SOLICITUD
+}
+
+enum ServiceDisponibilidad {
+  INCLUIDO
+  ADICIONAL
+  BAJO_SOLICITUD
+  NO_DISPONIBLE
+}
+
+enum ChangeRequestTipo {
+  FECHAS
+  CANCELACION
+  SERVICIOS
+  DATOS
+  OTRO
+}
+
+enum ChangeRequestEstado {
+  EN_REVISION
+  APROBADO
+  RECHAZADO
+}
+
+// ═════════════════════════════════════════════════════════════
+// Portal administrativo (Fase 2)
+// ═════════════════════════════════════════════════════════════
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  nombre       String
+  passwordHash String
+  rol          Rol       @default(RECEPCION)
+  activo       Boolean   @default(true)
+  ultimoAcceso DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions AdminSession[]
+  activity ActivityLog[]
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id            String   @id @default(cuid())
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId        String?
+  actorNombre   String
+  accion        String // "reserva.cancelar", "bloqueo.crear"…
+  entidad       String? // "Booking:VAL-26-0184"
+  detalle       String?
+  valorAnterior String?
+  valorNuevo    String?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entidad])
+}
+
+enum Rol {
+  PROPIETARIO
+  ADMINISTRADOR
+  RECEPCION
+  CONTABILIDAD
+  EDITOR
+  SOLO_LECTURA
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  nombre    String
+  desde     DateTime @db.Date
+  hasta     DateTime @db.Date
+  ajustePct Int // +20 => +20 % sobre el precio base
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([activa, desde])
+}
+
+model PromoCode {
+  id          String        @id @default(cuid())
+  codigo      String        @unique
+  descripcion String?
+  tipo        DescuentoTipo  @default(PORCENTAJE)
+  valor       Int // % o pesos, según tipo
+  desde       DateTime?      @db.Date
+  hasta       DateTime?      @db.Date
+  minNoches   Int            @default(1)
+  usosMax     Int?
+  usos        Int            @default(0)
+  activo      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+}
+
+enum DescuentoTipo {
+  PORCENTAJE
+  MONTO
+}
+
+model IcalLink {
+  id              String    @id @default(cuid())
+  room            Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId          String    @unique
+  urlEntrada      String? // enlace iCal de Airbnb para importar
+  tokenSalida     String    @default(cuid()) // enlace propio para exportar a Airbnb
+  ultimaSync      DateTime?
+  ultimoResultado String?
+  eventos         Int       @default(0)
+  autoSync        Boolean   @default(true)
+  activa          Boolean   @default(true)
+
+  logs IcalSyncLog[]
+}
+
+model IcalSyncLog {
+  id        String   @id @default(cuid())
+  link      IcalLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  linkId    String
+  ok        Boolean
+  mensaje   String
+  eventos   Int      @default(0)
+  conflictos Int     @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([linkId, createdAt])
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  evento    String   @unique
+  asunto    String
+  cuerpo    String
+  activa    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  id        Int      @id @default(1)
+  data      Json     @default("{}")
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,10 @@
+
+Portal administrativo — /admin
+
+Acceso (clave valema2026): marcela@valema.co (propietario) · admin@valema.co · recepcion@valema.co · contabilidad@valema.co · contenido@valema.co.
+
+Seguridad: autenticación propia (contraseña scrypt sin dependencias nativas, sesión en cookie + tabla AdminSession, proxy.ts como gate y requireUser(módulo, "read"|"write") como validación real). 6 roles con matriz de permisos módulo×rol — la barra lateral solo muestra lo accesible y cada acción comprueba escritura. Todo cambio sensible se registra en ActivityLog.
+
+birthday: sept 11 1980
+valemactg@gmail.com
+Cartagena@@2026
