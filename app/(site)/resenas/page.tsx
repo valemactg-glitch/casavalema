@@ -4,6 +4,9 @@ import { ReviewsView } from "@/components/site/ReviewsView";
 import { getReviewsSummary } from "@/lib/queries";
 import { formatDateEs } from "@/lib/dates";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Reseñas",
   description: "Reseñas verificadas de huéspedes de Casa Turística Valema, con calificación por limpieza, ubicación, atención, comodidad y relación calidad-precio.",

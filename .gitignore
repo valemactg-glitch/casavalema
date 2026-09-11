@@ -45,3 +45,9 @@ next-env.d.ts
 /.pgdata
 /.pgdata-test
 /pg.log
+
+# notas locales con credenciales: nunca deben subirse al repo
+admin-portal.txt
+Admin-portal.txt
+*credenciales*
+*password*

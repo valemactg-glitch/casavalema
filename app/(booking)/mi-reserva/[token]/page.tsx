@@ -16,6 +16,9 @@ import { formatCOP } from "@/lib/format";
 import { formatRangeEs, formatDateLongEs, nightsLabel, guestsLabel, today } from "@/lib/dates";
 import { whatsappUrl } from "@/lib/nav";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Mi reserva",
   robots: { index: false, follow: false },

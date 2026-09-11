@@ -3,6 +3,9 @@ import { PageIntro, Section } from "@/components/site/Section";
 import { GalleryGrid } from "@/components/site/GalleryGrid";
 import { getGallery } from "@/lib/queries";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Galería",
   description: "Fotos de las habitaciones, la fachada, los espacios comunes, el rooftop y el entorno de Casa Turística Valema.",

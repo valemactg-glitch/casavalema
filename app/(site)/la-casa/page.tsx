@@ -6,6 +6,9 @@ import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Diamond } from "@/components/ui/Diamond";
 import { getSitePage } from "@/lib/queries";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "La casa",
   description:

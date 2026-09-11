@@ -8,6 +8,9 @@ import { Callout } from "@/components/ui/Callout";
 import { getSitePage } from "@/lib/queries";
 import { whatsappUrl } from "@/lib/nav";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Rooftop",
   description:

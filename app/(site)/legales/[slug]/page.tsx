@@ -7,9 +7,20 @@ import { CookiePreferences } from "@/components/site/CookiePreferences";
 import { getLegalDoc, getLegalDocs } from "@/lib/queries";
 import { formatDateLongEs } from "@/lib/dates";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
-  const docs = await getLegalDocs();
-  return docs.map((d) => ({ slug: d.slug }));
+  // Si la base de datos no está disponible en tiempo de build (p. ej. no se
+  // ha configurado DATABASE_URL todavía), no se debe tumbar el build entero:
+  // estas páginas simplemente se renderizan bajo demanda en el primer visitante.
+  try {
+    const docs = await getLegalDocs();
+    return docs.map((d) => ({ slug: d.slug }));
+  } catch (err) {
+    console.warn("generateStaticParams(/legales/[slug]): sin conexión a la base de datos en build.", err);
+    return [];
+  }
 }
 
 export async function generateMetadata(props: PageProps<"/legales/[slug]">): Promise<Metadata> {

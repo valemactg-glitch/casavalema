@@ -9,6 +9,9 @@ import { getSitePage } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { whatsappUrl } from "@/lib/nav";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Ubicación y cómo llegar",
   description:

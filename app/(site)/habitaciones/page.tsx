@@ -7,6 +7,9 @@ import { searchAvailability } from "@/lib/booking/search";
 import { parseSearch, ISSUE_TEXT } from "@/lib/search-params";
 import { toISODate, formatRangeEs } from "@/lib/dates";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Habitaciones y disponibilidad",
   description: "Compara las cinco habitaciones de Casa Turística Valema con precio y disponibilidad reales para tus fechas.",

@@ -10,6 +10,9 @@ import { cobroLabel } from "@/lib/booking/pricing";
 import { whatsappUrl } from "@/lib/nav";
 import { getSettings, googleMapsUrl } from "@/lib/settings";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Confirmación de reserva",
   robots: { index: false, follow: false },

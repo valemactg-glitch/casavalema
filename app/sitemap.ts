@@ -2,11 +2,21 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { SITE_URL as SITE } from "@/lib/site";
 
+// Datos en vivo: nunca prerenderizar en build (evita fallar si DATABASE_URL
+// no está disponible todavía, p. ej. en el primer deploy de Vercel).
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [rooms, legales] = await Promise.all([
-    db.room.findMany({ where: { visible: true }, select: { slug: true, updatedAt: true } }),
-    db.legalDoc.findMany({ select: { slug: true, updatedAt: true } }),
-  ]);
+  let rooms: { slug: string; updatedAt: Date }[] = [];
+  let legales: { slug: string; updatedAt: Date }[] = [];
+  try {
+    [rooms, legales] = await Promise.all([
+      db.room.findMany({ where: { visible: true }, select: { slug: true, updatedAt: true } }),
+      db.legalDoc.findMany({ select: { slug: true, updatedAt: true } }),
+    ]);
+  } catch (err) {
+    console.warn("sitemap: sin conexión a la base de datos, se omiten rutas dinámicas.", err);
+  }
 
   const estaticas = [
     "",

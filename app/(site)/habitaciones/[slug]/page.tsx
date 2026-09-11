@@ -16,6 +16,9 @@ import { formatCOP, initials } from "@/lib/format";
 import { guestsLabel, formatDateEs, parseISODate, toISODate, addDays } from "@/lib/dates";
 import { defaultArrival, parseSearch } from "@/lib/search-params";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props: PageProps<"/habitaciones/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
   const room = await getRoom(slug);

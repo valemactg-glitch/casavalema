@@ -10,6 +10,9 @@ import { cobroLabel } from "@/lib/booking/pricing";
 import { formatCOP } from "@/lib/format";
 import { amenidadLabel } from "@/lib/catalog";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Servicios y experiencias",
   description:

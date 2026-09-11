@@ -5,6 +5,9 @@ import { FaqView } from "@/components/site/FaqView";
 import { getFaq } from "@/lib/queries";
 import { whatsappUrl } from "@/lib/nav";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
   description: "Reservas, pagos, cancelaciones, llegada y salida, niños, mascotas, rooftop, ubicación y facturación en Casa Turística Valema.",

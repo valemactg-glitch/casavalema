@@ -11,6 +11,9 @@ import { getSessionId } from "@/lib/session";
 import { quote as computeQuote } from "@/lib/booking/pricing";
 import type { ClientQuote } from "@/lib/booking/clientQuote";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Reservar",
   robots: { index: false, follow: false },

@@ -23,6 +23,9 @@ import { defaultArrival, searchToQuery } from "@/lib/search-params";
 import { addDays, formatDateEs } from "@/lib/dates";
 import { CONTACT } from "@/lib/nav";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Casa Turística Valema — alojamiento boutique con rooftop",
   alternates: { canonical: "/" },

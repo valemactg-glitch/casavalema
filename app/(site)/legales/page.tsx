@@ -5,6 +5,9 @@ import { Diamond } from "@/components/ui/Diamond";
 import { getLegalDocs } from "@/lib/queries";
 import { formatDateLongEs } from "@/lib/dates";
 
+// Datos en vivo (disponibilidad, precios, contenido editable): nunca prerenderizar.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Políticas y documentos legales",
   description: "Términos, privacidad, tratamiento de datos, cookies, reservas, pagos, cancelaciones y reglamento de Casa Turística Valema.",
