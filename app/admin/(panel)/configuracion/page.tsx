@@ -73,13 +73,19 @@ const GRUPOS: Grupo[] = [
     titulo: "Ubicación y mapa",
     campos: [
       {
+        name: "mapsUrl",
+        label: "Link de Google Maps",
+        placeholder: "https://maps.app.goo.gl/...",
+        hint: "En Google Maps, busca tu casa, toca el pin y luego \"Compartir\" → \"Copiar enlace\". Pega aquí ese link (corto o largo); lo resolvemos automáticamente.",
+      },
+      {
         name: "lat",
-        label: "Latitud",
+        label: "Latitud (opcional, avanzado)",
         type: "number",
         placeholder: "4.6097",
-        hint: "Abre el punto en Google Maps, clic derecho sobre el pin y copia las coordenadas.",
+        hint: "Solo si no quieres usar el link de arriba. Clic derecho sobre el pin en Google Maps para copiar las coordenadas.",
       },
-      { name: "lng", label: "Longitud", type: "number", placeholder: "-74.0817" },
+      { name: "lng", label: "Longitud (opcional, avanzado)", type: "number", placeholder: "-74.0817" },
       { name: "zoom", label: "Zoom del mapa (10–18)", type: "number", placeholder: "14" },
       {
         name: "direccionAprox",

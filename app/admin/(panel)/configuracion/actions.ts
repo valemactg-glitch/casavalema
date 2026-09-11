@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { assertCan, logActivity } from "@/lib/auth/session";
+import { extractLatLngFromMapsUrl, esMapsUrlCorto } from "@/lib/settings";
 
 /** Guarda un grupo de ajustes (merge sobre Setting.data). */
 export async function guardarConfig(formData: FormData) {
@@ -20,6 +21,25 @@ export async function guardarConfig(formData: FormData) {
       patch[k] = val === "" ? undefined : Number(val);
     } else {
       patch[k] = val;
+    }
+  }
+
+  // Si pegaron un link de Google Maps y no llenaron lat/lng a mano, intenta
+  // sacar las coordenadas del link para que el mapa incrustado también sirva.
+  if (grupo === "ubicacion" && typeof patch.mapsUrl === "string" && patch.mapsUrl && patch.lat == null && patch.lng == null) {
+    let url = patch.mapsUrl;
+    if (esMapsUrlCorto(url)) {
+      try {
+        const res = await fetch(url, { redirect: "follow" });
+        url = res.url || url;
+      } catch {
+        // sin internet o Google bloqueó la petición: seguimos solo con el link tal cual.
+      }
+    }
+    const coords = extractLatLngFromMapsUrl(url);
+    if (coords) {
+      patch.lat = coords.lat;
+      patch.lng = coords.lng;
     }
   }
 
